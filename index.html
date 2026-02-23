@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BR MONITOR — Notícias do Brasil</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a0f;
+    --surface: #0c1219;
+    --border: #1a2535;
+    --accent: #00e5ff;
+    --accent2: #ff3b30;
+    --accent3: #ffd60a;
+    --text: #c8d8e8;
+    --text-dim: #5a7a9a;
+    --green: #00ff88;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.012) 2px, rgba(0,229,255,0.012) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(6,10,15,0.97);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 54px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,229,255,0.4);
+  }
+
+  .logo span { color: var(--accent2); margin-right: 4px; }
+
+  .header-right { display: flex; align-items: center; gap: 1.5rem; }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.7); }
+  }
+
+  .clock {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .ticker-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ticker-label {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent2);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    z-index: 2;
+  }
+
+  .ticker-track {
+    display: flex;
+    animation: ticker 70s linear infinite;
+    padding-left: 120px;
+    will-change: transform;
+  }
+
+  .ticker-item {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    color: var(--text);
+    padding: 0 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .ticker-item:hover { color: var(--accent); }
+
+  .ticker-item::before {
+    content: '◆';
+    color: var(--accent);
+    font-size: 0.45rem;
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    min-height: calc(100vh - 90px);
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 1.5rem;
+    position: sticky;
+    top: 54px;
+    height: calc(100vh - 90px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar-right { border-left: 1px solid var(--border); border-right: none; }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .filters { display: flex; flex-direction: column; gap: 3px; }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    padding: 7px 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-radius: 3px;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .filter-btn .badge {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    padding: 1px 6px;
+    border-radius: 2px;
+    min-width: 22px;
+    text-align: center;
+  }
+
+  .filter-btn.active .badge { color: var(--accent); background: rgba(0,229,255,0.1); }
+
+  .trend-item {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .trend-item:last-child { border-bottom: none; }
+  .trend-item:hover .trend-title { color: var(--accent); }
+
+  .trend-num { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--accent2); margin-bottom: 2px; }
+  .trend-title { font-size: 0.78rem; font-weight: 600; line-height: 1.35; color: var(--text); transition: color 0.2s; }
+  .trend-meta { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
+
+  main { padding: 0; }
+
+  .search-wrap { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    padding: 9px 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    border-radius: 2px;
+  }
+
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus { border-color: var(--accent); }
+
+  .hero-section { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+
+  .hero-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.75rem;
+    cursor: pointer;
+    transition: border-color 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card:hover { border-color: var(--accent); }
+
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  .hero-cat {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 1px;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 0.9rem;
+  }
+
+  .hero-summary { font-size: 0.88rem; color: var(--text-dim); line-height: 1.65; margin-bottom: 1.25rem; }
+
+  .hero-footer {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+  }
+
+  .hero-source { color: var(--accent); }
+
+  .grid-section { padding: 1.5rem; }
+
+  .news-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .news-card { background: var(--bg); padding: 1.2rem; cursor: pointer; transition: background 0.15s; }
+  .news-card:hover { background: var(--surface); }
+
+  .news-card-cat {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    margin-bottom: 0.45rem;
+  }
+
+  .news-card-title { font-size: 0.88rem; font-weight: 600; line-height: 1.4; color: #dce8f0; margin-bottom: 0.45rem; }
+
+  .news-card-snippet {
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.7rem;
+  }
+
+  .news-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+  }
+
+  .news-card-source { color: var(--accent); }
+
+  .stat-block { background: var(--surface); border: 1px solid var(--border); padding: 1rem; margin-bottom: 0.75rem; }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    line-height: 1;
+    text-shadow: 0 0 14px rgba(0,229,255,0.3);
+  }
+
+  .stat-label { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 2px; margin-top: 2px; }
+
+  .topics { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .topic-tag {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .topic-tag:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.05); }
+
+  .source-tag {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .source-tag:hover { color: var(--accent); }
+  .source-tag:last-child { border-bottom: none; }
+  .source-dot { width: 5px; height: 5px; border-radius: 1px; flex-shrink: 0; }
+
+  .loading-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 5000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    overflow-y: auto;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    max-width: 680px;
+    width: 100%;
+    animation: slideUp 0.25s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-head {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .modal-cat { font-family: 'Space Mono', monospace; font-size: 0.58rem; letter-spacing: 2px; color: var(--accent); margin-bottom: 0.5rem; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; color: #fff; line-height: 1.1; }
+
+  .modal-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .modal-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .modal-body { padding: 1.5rem; }
+  .modal-text { font-size: 0.88rem; line-height: 1.8; color: var(--text); }
+
+  .modal-foot {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+  }
+
+  .modal-link { color: var(--accent); text-decoration: none; }
+  .modal-link:hover { text-decoration: underline; }
+
+  #boot {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    transition: opacity 0.5s;
+  }
+
+  #boot-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 8px;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(0,229,255,0.5);
+  }
+
+  #boot-bar-track { width: 280px; height: 2px; background: var(--border); overflow: hidden; }
+
+  #boot-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    box-shadow: 0 0 8px var(--accent);
+    transition: width 0.3s;
+  }
+
+  #boot-msg {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+  }
+
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 240px 1fr; }
+    .sidebar-right { display: none; }
+  }
+
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .news-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div id="boot-logo">BR MONITOR</div>
+  <div id="boot-bar-track"><div id="boot-bar"></div></div>
+  <div id="boot-msg">CONECTANDO AO FEED RSS...</div>
+</div>
+
+<header>
+  <div class="logo"><span>BR</span>MONITOR</div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>AO VIVO</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="ticker-wrap">
+  <div class="ticker-label">URGENTE</div>
+  <div class="ticker-track" id="ticker"></div>
+</div>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Fontes RSS</div>
+      <div class="filters" id="source-filters">
+        <button class="filter-btn active" data-src="todas" onclick="filterSource(this)">
+          ⬛ Todas
+          <span class="badge" id="badge-todas">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Mais Recentes</div>
+      <div id="trending">
+        <div class="loading-block"><div class="spinner"></div>Carregando...</div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="search-wrap">
+      <input class="search-input" id="searchInput" type="text" placeholder="▸ BUSCAR NOTÍCIAS..." oninput="doSearch()" />
+    </div>
+
+    <div class="hero-section" id="hero">
+      <div class="loading-block"><div class="spinner"></div>Buscando manchetes...</div>
+    </div>
+
+    <div class="grid-section">
+      <div class="section-label">Últimas Notícias</div>
+      <div class="news-grid" id="grid">
+        <div class="loading-block" style="grid-column:1/-1"><div class="spinner"></div>Carregando feed...</div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="sidebar sidebar-right">
+    <div>
+      <div class="section-label">Estatísticas</div>
+      <div class="stat-block">
+        <div class="stat-value" id="stat-n">—</div>
+        <div class="stat-label">NOTÍCIAS NO FEED</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" id="stat-src" style="color:var(--accent2)">—</div>
+        <div class="stat-label">FONTES ATIVAS</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Palavras em Alta</div>
+      <div class="topics" id="topics"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Feeds Ativos</div>
+      <div id="source-list"></div>
+    </div>
+
+    <div style="margin-top:auto">
+      <div class="section-label">Atualização</div>
+      <div style="font-size:0.72rem;color:var(--text-dim);line-height:1.7;font-family:'Space Mono',monospace;">
+        Feed RSS atualizado a cada<br>
+        <span style="color:var(--accent)">5 minutos</span> automaticamente.<br><br>
+        Fontes: G1, BBC Brasil,<br>CNN Brasil, Folha, UOL.
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeOnBackdrop(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-cat" id="m-cat"></div>
+        <div class="modal-title" id="m-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕ FECHAR</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-text" id="m-text"></div>
+    </div>
+    <div class="modal-foot">
+      <span id="m-meta"></span>
+      <a class="modal-link" id="m-link" href="#" target="_blank" rel="noopener">Ver na fonte →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// CLOCK
+const clockEl = document.getElementById('clock');
+function tick() {
+  clockEl.textContent = new Date().toLocaleTimeString('pt-BR', {
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  }) + ' BRT';
+}
+setInterval(tick, 1000); tick();
+
+// BOOT
+const bootBar = document.getElementById('boot-bar');
+const bootMsg = document.getElementById('boot-msg');
+const bootEl  = document.getElementById('boot');
+
+function setProgress(pct, msg) {
+  bootBar.style.width = pct + '%';
+  if (msg) bootMsg.textContent = msg;
+}
+
+function hideBoot() {
+  bootEl.style.opacity = '0';
+  setTimeout(() => bootEl.remove(), 500);
+}
+
+// FEEDS
+const FEEDS = [
+  { name: 'G1',         url: 'https://g1.globo.com/rss/g1/',                           color: '#e8202e' },
+  { name: 'BBC Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml',             color: '#bb1919' },
+  { name: 'CNN Brasil', url: 'https://www.cnnbrasil.com.br/feed/',                      color: '#cc0000' },
+  { name: 'Folha',      url: 'https://feeds.folha.uol.com.br/emcimadahora/rss091.xml',  color: '#1a56c4' },
+  { name: 'UOL',        url: 'https://rss.uol.com.br/feed/noticias.xml',                color: '#f57c00' },
+];
+
+const PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+// ESTADO
+let allItems = [];
+let activeSource = 'todas';
+
+// FETCH
+async function fetchFeed(feed) {
+  try {
+    const r = await fetch(`${PROXY}${encodeURIComponent(feed.url)}&count=20`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.message || 'RSS error');
+    return (d.items || []).map(item => ({
+      title:   (item.title || 'Sem título').trim(),
+      summary: stripHtml(item.description || item.content || '').slice(0, 300),
+      link:    item.link || '#',
+      pub:     item.pubDate ? new Date(item.pubDate) : new Date(),
+      source:  feed.name,
+      color:   feed.color,
+    }));
+  } catch (e) {
+    console.warn(`[${feed.name}] erro:`, e.message);
+    return [];
+  }
+}
+
+function stripHtml(h) {
+  return h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function timeAgo(date) {
+  const d = Math.floor((Date.now() - date) / 1000);
+  if (d < 60)    return 'agora mesmo';
+  if (d < 3600)  return `há ${Math.floor(d/60)} min`;
+  if (d < 86400) return `há ${Math.floor(d/3600)}h`;
+  return `há ${Math.floor(d/86400)} dias`;
+}
+
+// TOPICS
+const STOP = new Set(['de','da','do','em','no','na','o','a','os','as','e','é','que','se','um','uma','para','com','por','não','mas','mais','foi','são','dos','das','ao','há','este','essa','isso','pelo','pela','está','ser','como','seu','sua','seus','suas','sobre','entre','após','desde','até','também','quando','todo','toda','todos','todas','parte','contra','ainda','já','novo','nova','vai','pode','eles','ela','ele','após','após','presidente','governo','ministro','país','brasil','brasileiro','brasileira','anos','ano']);
+
+function getTopics(items) {
+  const freq = {};
+  items.forEach(n => {
+    (n.title + ' ' + n.summary).toLowerCase()
+      .replace(/[^a-záàâãéèêíìîóòôõúùûçñ\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 4 && !STOP.has(w))
+      .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+  });
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 14)
+    .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+}
+
+// RENDER TICKER
+function renderTicker(items) {
+  const top = items.slice(0, 8);
+  const doubled = [...top, ...top];
+  document.getElementById('ticker').innerHTML = doubled.map((n, i) =>
+    `<div class="ticker-item" onclick="openModal(${n._id})">${n.title}</div>`
+  ).join('');
+}
+
+// RENDER HERO
+function renderHero(items) {
+  if (!items.length) {
+    document.getElementById('hero').innerHTML = `<div style="padding:2rem;font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--text-dim)">Nenhuma notícia encontrada.</div>`;
+    return;
+  }
+  const n = items[0];
+  document.getElementById('hero').innerHTML = `
+    <div class="hero-card" onclick="openModal(${n._id})">
+      <div class="hero-cat">${n.source.toUpperCase()}</div>
+      <div class="hero-title">${esc(n.title)}</div>
+      <div class="hero-summary">${esc(n.summary) || '—'}</div>
+      <div class="hero-footer">
+        <span class="hero-source">${n.source}</span>
+        <span>${timeAgo(n.pub)}</span>
+      </div>
+    </div>
+  `;
+}
+
+// RENDER GRID
+function renderGrid(items) {
+  const rest = items.slice(1, 21);
+  if (!rest.length) {
+    document.getElementById('grid').innerHTML = `<div style="grid-column:1/-1;padding:2rem;font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--text-dim)">Sem mais notícias.</div>`;
+    return;
+  }
+  document.getElementById('grid').innerHTML = rest.map(n => `
+    <div class="news-card" onclick="openModal(${n._id})">
+      <div class="news-card-cat">${n.source.toUpperCase()}</div>
+      <div class="news-card-title">${esc(n.title)}</div>
+      <div class="news-card-snippet">${esc(n.summary) || '—'}</div>
+      <div class="news-card-footer">
+        <span class="news-card-source">${n.source}</span>
+        <span>${timeAgo(n.pub)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// RENDER TRENDING
+function renderTrending(items) {
+  const top = [...items].sort((a, b) => b.pub - a.pub).slice(0, 6);
+  document.getElementById('trending').innerHTML = top.map((n, i) => `
+    <div class="trend-item" onclick="openModal(${n._id})">
+      <div class="trend-num">0${i + 1}</div>
+      <div class="trend-title">${esc(n.title)}</div>
+      <div class="trend-meta">${n.source} · ${timeAgo(n.pub)}</div>
+    </div>
+  `).join('');
+}
+
+// RENDER SIDEBAR DIREITA
+function renderRight(items) {
+  document.getElementById('stat-n').textContent = items.length;
+  const srcs = [...new Set(items.map(n => n.source))];
+  document.getElementById('stat-src').textContent = srcs.length;
+
+  document.getElementById('topics').innerHTML = getTopics(items).map(t =>
+    `<span class="topic-tag">${t}</span>`
+  ).join('');
+
+  document.getElementById('source-list').innerHTML = srcs.map(s => {
+    const feed = FEEDS.find(f => f.name === s);
+    const cnt = items.filter(n => n.source === s).length;
+    return `<div class="source-tag" onclick="filterBySource('${s}')">
+      <div class="source-dot" style="background:${feed?.color||'var(--accent)'}"></div>
+      ${s} <span style="margin-left:auto;font-size:0.55rem;opacity:.6">${cnt}</span>
+    </div>`;
+  }).join('');
+}
+
+// RENDER FILTROS
+function renderSourceFilters(items) {
+  const srcs = [...new Set(items.map(n => n.source))];
+  const container = document.getElementById('source-filters');
+  document.getElementById('badge-todas').textContent = items.length;
+  container.querySelectorAll('[data-src]:not([data-src="todas"])').forEach(b => b.remove());
+
+  srcs.forEach(s => {
+    const feed = FEEDS.find(f => f.name === s);
+    const cnt = items.filter(n => n.source === s).length;
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.src = s;
+    btn.onclick = function() { filterSource(this); };
+    btn.innerHTML = `<span style="width:7px;height:7px;background:${feed?.color||'var(--accent)'};display:inline-block;border-radius:1px;flex-shrink:0;"></span>${s}<span class="badge">${cnt}</span>`;
+    container.appendChild(btn);
+  });
+}
+
+// FILTER
+function filterSource(btn) {
+  document.querySelectorAll('#source-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeSource = btn.dataset.src;
+  applyFilter();
+}
+
+function filterBySource(src) {
+  const btn = document.querySelector(`#source-filters [data-src="${src}"]`);
+  if (btn) filterSource(btn);
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  let f = activeSource === 'todas' ? allItems : allItems.filter(n => n.source === activeSource);
+  if (q) f = f.filter(n => n.title.toLowerCase().includes(q) || n.summary.toLowerCase().includes(q));
+  renderHero(f);
+  renderGrid(f);
+}
+
+function doSearch() { applyFilter(); }
+
+// ESC HTML
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// MODAL
+function openModal(id) {
+  const n = allItems.find(x => x._id === id);
+  if (!n) return;
+  document.getElementById('m-cat').textContent = n.source.toUpperCase();
+  document.getElementById('m-title').textContent = n.title;
+  document.getElementById('m-text').textContent = n.summary || 'Sem resumo. Acesse a fonte para a matéria completa.';
+  document.getElementById('m-meta').textContent = `${n.source} · ${timeAgo(n.pub)} · ${n.pub.toLocaleDateString('pt-BR')}`;
+  document.getElementById('m-link').href = n.link;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeOnBackdrop(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// INIT
+async function init() {
+  setProgress(10, 'INICIALIZANDO FEEDS RSS...');
+
+  const results = await Promise.allSettled(
+    FEEDS.map((f, i) =>
+      fetchFeed(f).then(items => {
+        setProgress(10 + ((i + 1) / FEEDS.length) * 78, `LENDO ${f.name.toUpperCase()}...`);
+        return items;
+      })
+    )
+  );
+
+  setProgress(92, 'ORGANIZANDO NOTÍCIAS...');
+
+  let id = 0;
+  allItems = results
+    .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+    .map(n => ({ ...n, _id: id++ }))
+    .sort((a, b) => b.pub - a.pub);
+
+  if (!allItems.length) {
+    document.getElementById('hero').innerHTML = `<div class="loading-block" style="color:var(--accent2)">⚠ Não foi possível carregar os feeds. Verifique sua conexão e atualize a página.</div>`;
+    document.getElementById('grid').innerHTML = '';
+    hideBoot();
+    return;
+  }
+
+  setProgress(100, 'PRONTO');
+
+  renderTicker(allItems);
+  renderHero(allItems);
+  renderGrid(allItems);
+  renderTrending(allItems);
+  renderRight(allItems);
+  renderSourceFilters(allItems);
+
+  setTimeout(hideBoot, 400);
+
+  // auto-refresh a cada 5 minutos
+  setInterval(() => location.reload(), 5 * 60 * 1000);
+}
+
+init();
+</script>
+</body>
+</html>
